@@ -1,0 +1,23 @@
+{
+  "name": "bt-gestion-flotte",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "user:admin": "node --env-file=.env.local scripts/create-admin.js",
+    "seed": "node --env-file=.env.local scripts/seed.js",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "mongoose": "^9.11.3",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
+}

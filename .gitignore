@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+.env*.local
+.env
+*.log
+.DS_Store
+
+# Playwright
+/test-results/
+/playwright-report/
+/e2e/.auth/
