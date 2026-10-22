@@ -8,8 +8,13 @@ import { updateVehicle } from '@/actions/vehicles';
 import { connectDB } from '@/lib/db';
 import { safeNext } from '@/lib/safe-next';
 import Vehicle from '@/models/Vehicle';
+import Denied from '@/components/Denied';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 
 export default async function EditVehiclePage({ params, searchParams }) {
+  // Réservé aux rôles autorisés (l'action serveur refuse aussi)
+  if (!can(await getSession(), 'editFleet')) return <Denied />;
   const { id } = await params;
   const sp = await searchParams;
   if (!mongoose.isValidObjectId(id)) notFound();

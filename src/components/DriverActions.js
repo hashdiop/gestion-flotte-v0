@@ -5,8 +5,15 @@ import ConfirmButton from './ConfirmButton';
 import { setDriverActive } from '@/actions/drivers';
 
 // Actions rapides d'un chauffeur, depuis la liste : crayon visible, le reste sous ⋮
-export default function DriverActions({ driver, hasVehicle, back = '/chauffeurs' }) {
+export default function DriverActions({ driver, hasVehicle, back = '/chauffeurs', canEdit = true }) {
   const id = String(driver._id);
+  if (!canEdit) {
+    return (
+      <Link href={`/chauffeurs/${id}`} className="btn icon ghost" aria-label={`Voir ${driver.firstName} ${driver.lastName}`} title="Voir la fiche">
+        <Eye size={17} aria-hidden="true" />
+      </Link>
+    );
+  }
   const name = `${driver.firstName} ${driver.lastName}`;
   const toggle = setDriverActive.bind(null, id);
   const editHref = `/chauffeurs/${id}/modifier?next=${encodeURIComponent(back)}`;

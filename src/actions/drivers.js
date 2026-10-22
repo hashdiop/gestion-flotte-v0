@@ -31,7 +31,7 @@ function parseDriver(fd) {
 }
 
 export async function createDriver(prevState, formData) {
-  await requireSession();
+  await requireSession('editFleet');
   const { data, errors } = parseDriver(formData);
   if (Object.keys(errors).length) return { errors, values: formValues(formData) };
 
@@ -42,7 +42,7 @@ export async function createDriver(prevState, formData) {
 }
 
 export async function updateDriver(id, prevState, formData) {
-  await requireSession();
+  await requireSession('editFleet');
   if (!mongoose.isValidObjectId(id)) return { errors: { form: 'Chauffeur introuvable.' } };
   const { data, errors } = parseDriver(formData);
   if (Object.keys(errors).length) return { errors, values: formValues(formData) };
@@ -56,7 +56,7 @@ export async function updateDriver(id, prevState, formData) {
 }
 
 export async function setDriverActive(id, formData) {
-  await requireSession();
+  await requireSession('editFleet');
   if (!mongoose.isValidObjectId(id)) return;
   const active = str(formData, 'active') === 'true';
 

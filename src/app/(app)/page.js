@@ -22,6 +22,8 @@ import Payment from '@/models/Payment';
 import PaymentAdjustment from '@/models/PaymentAdjustment';
 import { driverBalances } from '@/lib/balances';
 import { getClosureState } from '@/lib/closure';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 import Vehicle from '@/models/Vehicle';
 
 export const dynamic = 'force-dynamic';
@@ -51,6 +53,7 @@ export default async function DashboardPage() {
   const nextMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1));
   const sunday = isSunday(today);
 
+  const canClose = can(await getSession(), 'closeDay');
   await connectDB();
   const [todayData, monthPayments, monthAssignments, expenseByType, recentExpenses, vehicles, activeDrivers, currentAssignments, balances, monthAdjustments, closureState] =
     await Promise.all([
@@ -126,7 +129,7 @@ export default async function DashboardPage() {
       <PageHeader title="Tableau de bord" domain="dash" sub={formatLongDay(today).replace(/^./, (c) => c.toUpperCase())} />
 
       <div className="alerts">
-        {closureDue && (
+        {canClose && closureDue && (
           <Alert tone="bad" icon={LockKeyhole} href="/versements/cloture" action="Clôturer">
             {closureLate > 0
               ? <><b>{closureLate}</b> jour{closureLate > 1 ? 's' : ''} non clôturé{closureLate > 1 ? 's' : ''} depuis le {formatDate(closureState.nextToClose)}</>

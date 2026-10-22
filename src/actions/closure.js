@@ -25,7 +25,7 @@ const isNum = (n) => n !== null && !Number.isNaN(n);
 //  3. la journée est figée : plus de modification, seulement des écritures correctrices ;
 //  4. le rapport de clôture (totaux, lignes, caisse) est enregistré tel quel.
 export async function closeDay(prevState, formData) {
-  const session = await requireSession();
+  const session = await requireSession('closeDay');
   const day = parseDay(str(formData, 'date'));
   const counted = int(formData, 'cashCounted');
   const note = str(formData, 'note');
@@ -107,7 +107,7 @@ export async function closeDay(prevState, formData) {
 //   kind = 'remboursement' : le chauffeur rembourse (montant, mode) un manque de cette journée
 //   kind = 'correction'    : on rectifie l'attendu et/ou le versé de cette journée
 export async function addAdjustment(prevState, formData) {
-  const session = await requireSession();
+  const session = await requireSession('adjustClosed');
   const kind = str(formData, 'kind');
   const day = parseDay(str(formData, 'date'));
   const driverId = str(formData, 'driverId');

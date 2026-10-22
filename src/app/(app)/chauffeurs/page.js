@@ -9,6 +9,8 @@ import { connectDB } from '@/lib/db';
 import { currentAssignmentsBy } from '@/lib/assignments';
 import { formatDate } from '@/lib/format';
 import Driver from '@/models/Driver';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 
 export const metadata = { title: 'Chauffeurs · Gestion de flotte' };
 
@@ -18,6 +20,7 @@ export default async function DriversPage({ searchParams }) {
   const { etat } = await searchParams;
   const current = FILTERS[etat] ? etat : 'actifs';
 
+  const canEdit = can(await getSession(), 'editFleet');
   await connectDB();
   const [drivers, activeCount, inactiveCount, byDriver] = await Promise.all([
     Driver.find(FILTERS[current]).sort({ lastName: 1, firstName: 1 }).lean(),
@@ -29,7 +32,7 @@ export default async function DriversPage({ searchParams }) {
   return (
     <>
       <PageHeader title="Chauffeurs" domain="drv" sub={`${activeCount} chauffeur${activeCount > 1 ? 's' : ''} actif${activeCount > 1 ? 's' : ''}`}>
-        <Link href="/chauffeurs/nouveau" className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter un chauffeur</Link>
+        {canEdit && <Link href="/chauffeurs/nouveau" className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter un chauffeur</Link>}
       </PageHeader>
 
       <FilterTabs
@@ -87,6 +90,7 @@ export default async function DriversPage({ searchParams }) {
                     <DriverActions
                       driver={d}
                       hasVehicle={byDriver.has(String(d._id))}
+                      canEdit={canEdit}
                       back={current === 'actifs' ? '/chauffeurs' : '/chauffeurs?etat=inactifs'}
                     />
                   </td>

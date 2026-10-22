@@ -1,6 +1,8 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import PageHeader from '@/components/PageHeader';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 import Alert from '@/components/Alert';
 import { CalendarClock, FileText } from 'lucide-react';
 import Badge from '@/components/Badge';
@@ -18,6 +20,7 @@ export const metadata = { title: 'Clôture journalière · Gestion de flotte' };
 const timeFmt = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 
 export default async function ClosurePage() {
+  const canClose = can(await getSession(), 'closeDay');
   await connectDB();
   const state = await getClosureState();
   const history = await DayClosure.find().sort({ date: -1 }).limit(30).lean();
@@ -80,12 +83,16 @@ export default async function ClosurePage() {
           )}
 
           <div className="pad top-line">
-            <CloseDayForm
-              day={dayKey(preview.day)}
-              dayLabel={formatDate(preview.day)}
-              cashExpected={preview.cashExpected}
-              convertCount={preview.toConvert.length}
-            />
+            {canClose ? (
+              <CloseDayForm
+                day={dayKey(preview.day)}
+                dayLabel={formatDate(preview.day)}
+                cashExpected={preview.cashExpected}
+                convertCount={preview.toConvert.length}
+              />
+            ) : (
+              <p className="muted small">Seul un admin peut clôturer la journée.</p>
+            )}
           </div>
         </section>
       ) : (

@@ -38,7 +38,7 @@ async function parseExpense(fd) {
 const listUrl = (d) => `/depenses?mois=${dayKey(d).slice(0, 7)}`;
 
 export async function createExpense(prevState, formData) {
-  await requireSession();
+  await requireSession('editExpenses');
   await connectDB();
   const { data, errors } = await parseExpense(formData);
   if (Object.keys(errors).length) return { errors, values: formValues(formData) };
@@ -50,7 +50,7 @@ export async function createExpense(prevState, formData) {
 }
 
 export async function updateExpense(id, prevState, formData) {
-  await requireSession();
+  await requireSession('editExpenses');
   if (!mongoose.isValidObjectId(id)) return { errors: { form: 'Dépense introuvable.' } };
   await connectDB();
   const { data, errors } = await parseExpense(formData);
@@ -67,7 +67,7 @@ export async function updateExpense(id, prevState, formData) {
 }
 
 export async function deleteExpense(id) {
-  await requireSession();
+  await requireSession('editExpenses');
   if (!mongoose.isValidObjectId(id)) return;
   await connectDB();
   const expense = await Expense.findOneAndUpdate({ _id: id, deletedAt: null }, { $set: { deletedAt: new Date() } });

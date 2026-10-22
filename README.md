@@ -30,6 +30,29 @@ Avant le premier `npm run test:e2e` : `npx playwright install chromium`.
 Les tests compilent l'application, la lancent sur le port 3100 avec une base dédiée (`bt_flotte_e2e`),
 la remplissent avec le seed et y créent un compte de test. La base de développement n'est jamais touchée.
 
+## Comptes et rôles
+
+| Rôle | Peut faire |
+| --- | --- |
+| Admin | Tout, dont la page « Comptes », la clôture journalière et les corrections après clôture |
+| Gestionnaire | Véhicules, chauffeurs, affectations, versements, dépenses, documents (pas de clôture ni de comptes) |
+| Agent | Consulter, et saisir les versements de la journée en cours |
+
+- Les droits sont vérifiés côté serveur dans chaque action ; les écrans masquent en plus les boutons.
+- Un compte est créé par un admin avec un mot de passe provisoire (affiché une seule fois), à changer à la première connexion.
+- Désactiver un compte, changer son rôle ou son mot de passe ferme immédiatement ses sessions ouvertes.
+- Un compte n'est jamais supprimé (l'historique garde son nom). Le dernier admin actif ne peut être ni désactivé ni rétrogradé.
+- Chacun change son mot de passe depuis « Mon compte » (clic sur son nom en bas du menu).
+
+## Mise en production : premier admin
+
+1. Renseigner `MONGODB_URI` (base de production), `AUTH_SECRET` (long et aléatoire), `ADMIN_EMAIL`,
+   `ADMIN_PASSWORD` et `ADMIN_NAME` dans l'environnement du serveur.
+2. Créer le compte initial, une seule fois : `npm run user:admin`. Ne pas lancer le seed en production.
+3. Se connecter avec ce compte, ouvrir « Comptes » et créer un admin nominatif pour la personne responsable.
+4. Cette personne se connecte, change son mot de passe provisoire et crée les autres comptes.
+5. Désactiver ensuite le compte initial depuis « Comptes », et retirer `ADMIN_PASSWORD` de l'environnement.
+
 ## Organisation
 
 - `src/app/` : pages. `(app)/` regroupe les pages protégées, `login/` la connexion.

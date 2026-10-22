@@ -1,4 +1,4 @@
-import { Banknote, Car, FileCheck, LayoutDashboard, LockKeyhole, Receipt, Users } from 'lucide-react';
+import { Banknote, Car, FileCheck, LayoutDashboard, LockKeyhole, Receipt, UserCog, Users } from 'lucide-react';
 
 // Rubriques de l'application : libellé, lien, icône et couleur (variables CSS --{key} et --{key}-bg)
 export const DOMAINS = {
@@ -9,6 +9,7 @@ export const DOMAINS = {
   exp: { label: 'Dépenses', short: 'Dépenses', href: '/depenses', Icon: Receipt },
   doc: { label: 'Documents', short: 'Docs', href: '/documents', Icon: FileCheck },
   clo: { label: 'Clôture', short: 'Clôture', href: '/versements/cloture', Icon: LockKeyhole },
+  acc: { label: 'Comptes', short: 'Comptes', href: '/comptes', Icon: UserCog }, // admin uniquement
 };
 
 // Variables CSS d'une rubrique, à poser en style sur un élément (lues par .dom, .side nav a…)

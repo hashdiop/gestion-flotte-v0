@@ -24,7 +24,8 @@ const signed = (n) => (n > 0 ? `+${formatNumber(n)}` : `−${formatNumber(-n)}`)
 //  journée ouverte  : saisie (encaisser, non versé, non dû)
 //  journée clôturée : écriture correctrice (remboursement d'un manque ou correction), motif obligatoire
 // row : { driverId, driverName, vehicleId, plate, rate, expected, paid, payment, autoNotDue, status, hint, adjustments, logs }
-export default function PaymentRow({ row, day, colCount, closed }) {
+// canEdit : le rôle peut saisir (journée ouverte) ou corriger (journée clôturée) cette ligne
+export default function PaymentRow({ row, day, colCount, closed, canEdit = true }) {
   const [open, setOpen] = useState(false);
   const p = row.payment;
 
@@ -57,7 +58,7 @@ export default function PaymentRow({ row, day, colCount, closed }) {
           ))}
         </td>
         <td className="actions-cell">
-          <ToggleButton label={open ? 'Fermer' : closed ? 'Corriger' : p ? 'Modifier' : row.autoNotDue ? 'Corriger' : 'Saisir'} onClick={() => setOpen((o) => !o)} open={open} />
+          {canEdit && <ToggleButton label={open ? 'Fermer' : closed ? 'Corriger' : p ? 'Modifier' : row.autoNotDue ? 'Corriger' : 'Saisir'} onClick={() => setOpen((o) => !o)} open={open} />}
         </td>
       </tr>
       {open && (

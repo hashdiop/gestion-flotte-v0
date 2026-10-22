@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import PageHeader from '@/components/PageHeader';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 import Kpi from '@/components/Kpi';
 import { DOC_ICONS } from '@/components/DocDots';
 import { domainVars } from '@/components/domains';
@@ -20,6 +22,7 @@ export default async function DocumentsPage({ searchParams }) {
   const all = vue === 'tous';
   const today = todayUTC();
 
+  const canEdit = can(await getSession(), 'editDocuments');
   await connectDB();
   // Les véhicules sortis du parc ne sont plus suivis
   const vehicles = await Vehicle.find({ status: { $ne: 'sorti_du_parc' } }).sort({ plate: 1 }).lean();
@@ -41,7 +44,7 @@ export default async function DocumentsPage({ searchParams }) {
   return (
     <>
       <PageHeader title="Documents" domain="doc" sub="Papiers administratifs des véhicules : échéances et vérifications. Aucune copie n’est conservée.">
-        <Link href="/documents/nouveau?next=/documents" className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter un document</Link>
+        {canEdit && <Link href="/documents/nouveau?next=/documents" className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter un document</Link>}
       </PageHeader>
 
       <div className="kpis">
@@ -106,14 +109,14 @@ export default async function DocumentsPage({ searchParams }) {
                     )}
                   </td>
                   <td className="actions-cell">
-                    <Link
+                    {canEdit && <Link
                       href={`/documents/nouveau?vehicule=${r.vehicle._id}&type=${r.type}&next=/documents`}
                       className={`btn icon${r.doc ? ' ghost' : ' primary'}`}
                       aria-label={r.doc ? 'Renouveler' : 'Ajouter'}
                       title={r.doc ? 'Renouveler' : 'Ajouter'}
                     >
                       {r.doc ? <RefreshCw size={17} aria-hidden="true" /> : <Plus size={17} aria-hidden="true" />}
-                    </Link>
+                    </Link>}
                   </td>
                 </tr>
               ))}

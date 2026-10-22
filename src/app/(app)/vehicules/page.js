@@ -13,6 +13,8 @@ import { currentDocuments } from '@/lib/documents';
 import { formatNumber } from '@/lib/format';
 import { VEHICLE_STATUS } from '@/lib/vehicle-status';
 import Vehicle from '@/models/Vehicle';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 
 export const metadata = { title: 'Véhicules · Gestion de flotte' };
 
@@ -22,6 +24,7 @@ export default async function VehiclesPage({ searchParams }) {
   const { statut } = await searchParams;
   const current = VEHICLE_STATUS[statut] ? statut : '';
 
+  const canEdit = can(await getSession(), 'editFleet');
   await connectDB();
   // Par défaut, le parc actif : tout sauf les véhicules sortis du parc
   const filter = current ? { status: current } : { status: { $ne: 'sorti_du_parc' } };
@@ -43,7 +46,7 @@ export default async function VehiclesPage({ searchParams }) {
   return (
     <>
       <PageHeader title="Véhicules" domain="veh" sub={`${activeCount} véhicule${activeCount > 1 ? 's' : ''} dans le parc actif`}>
-        <Link href="/vehicules/nouveau" className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter un véhicule</Link>
+        {canEdit && <Link href="/vehicules/nouveau" className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter un véhicule</Link>}
       </PageHeader>
 
       <FilterTabs basePath="/vehicules" param="statut" current={current} options={tabs} label="Filtrer par statut" />
@@ -92,7 +95,7 @@ export default async function VehiclesPage({ searchParams }) {
                     <td><VehicleStatusBadge status={v.status} /></td>
                     <td>{out ? <span className="muted">—</span> : <DocDots docsByType={docs.get(String(v._id))} today={today} />}</td>
                     <td className="actions-cell">
-                      <VehicleActions vehicle={v} back={current ? `/vehicules?statut=${current}` : '/vehicules'} />
+                      <VehicleActions vehicle={v} back={current ? `/vehicules?statut=${current}` : '/vehicules'} canEdit={canEdit} />
                     </td>
                   </tr>
                 );

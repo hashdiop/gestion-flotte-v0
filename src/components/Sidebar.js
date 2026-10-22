@@ -6,9 +6,11 @@ import { LogOut, Truck } from 'lucide-react';
 import { logout } from '@/actions/auth';
 import ThemeToggle from './ThemeToggle';
 import { DOMAINS, domainVars } from './domains';
+import { ROLES } from '@/lib/roles';
 
-// Ordre du menu ; « sep » = séparation
+// Ordre du menu ; « sep » = séparation. « Comptes » n'apparaît que pour l'admin.
 const NAV = ['dash', 'sep', 'veh', 'drv', 'sep', 'pay', 'exp', 'clo', 'sep', 'doc'];
+const NAV_ADMIN = [...NAV, 'acc'];
 
 // La rubrique active est la plus précise qui correspond à l'adresse (Clôture avant Versements)
 function activeKey(pathname) {
@@ -48,9 +50,10 @@ function LogoutButton() {
   );
 }
 
-export default function Sidebar({ userName, theme }) {
+export default function Sidebar({ userName, role, theme }) {
   const pathname = usePathname();
   const current = activeKey(pathname);
+  const nav = role === 'admin' ? NAV_ADMIN : NAV;
 
   return (
     <>
@@ -58,6 +61,9 @@ export default function Sidebar({ userName, theme }) {
       <header className="mobile-top">
         <Brand />
         <div className="row-tight">
+          <Link href="/mon-compte" className="icon-btn" aria-label="Mon compte">
+            <span className="avatar-sm" aria-hidden="true">{initials(userName)}</span>
+          </Link>
           <ThemeToggle initial={theme} />
           <LogoutButton />
         </div>
@@ -66,7 +72,7 @@ export default function Sidebar({ userName, theme }) {
       <aside className="side">
         <Brand />
         <nav aria-label="Navigation principale">
-          {NAV.map((key, i) => {
+          {nav.map((key, i) => {
             if (key === 'sep') return <div key={`sep-${i}`} className="sep" />;
             const d = DOMAINS[key];
             return (
@@ -79,10 +85,13 @@ export default function Sidebar({ userName, theme }) {
           })}
         </nav>
         <div className="me">
-          <span className="who">
+          <Link href="/mon-compte" className="who" aria-label={`Mon compte : ${userName}`} data-tip="Mon compte">
             <span className="avatar-sm" aria-hidden="true">{initials(userName)}</span>
-            <span>{userName}</span>
-          </span>
+            <span className="who-txt">
+              <span>{userName}</span>
+              <small>{ROLES[role]?.label}</small>
+            </span>
+          </Link>
           <ThemeToggle initial={theme} />
           <LogoutButton />
         </div>

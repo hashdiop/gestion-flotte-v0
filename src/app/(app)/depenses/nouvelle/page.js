@@ -7,10 +7,15 @@ import { createExpense } from '@/actions/expenses';
 import { connectDB } from '@/lib/db';
 import { dayKey, todayUTC } from '@/lib/dates';
 import { vehicleOptions } from '@/lib/vehicle-options';
+import Denied from '@/components/Denied';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 
 export const metadata = { title: 'Nouvelle dépense · Gestion de flotte' };
 
 export default async function NewExpensePage({ searchParams }) {
+  // Réservé aux rôles autorisés (l'action serveur refuse aussi)
+  if (!can(await getSession(), 'editExpenses')) return <Denied />;
   const { vehicule } = await searchParams;
   await connectDB();
   const vehicles = await vehicleOptions();

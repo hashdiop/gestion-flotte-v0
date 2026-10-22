@@ -10,11 +10,15 @@ import { DOCUMENT_TYPES } from '@/lib/document-types';
 import { vehicleOptions } from '@/lib/vehicle-options';
 import { getSession } from '@/lib/session';
 import { safeNext } from '@/lib/safe-next';
+import Denied from '@/components/Denied';
+import { can } from '@/lib/roles';
 
 export const metadata = { title: 'Nouveau document · Gestion de flotte' };
 
 // ?vehicule=…&type=… préremplissent le formulaire (bouton « Renouveler » ou « Ajouter »)
 export default async function NewDocumentPage({ searchParams }) {
+  // Réservé aux rôles autorisés (l'action serveur refuse aussi)
+  if (!can(await getSession(), 'editDocuments')) return <Denied />;
   const { vehicule, type, next } = await searchParams;
   await connectDB();
   const [vehicles, session] = await Promise.all([vehicleOptions(), getSession()]);

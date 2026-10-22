@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import mongoose from 'mongoose';
 import PageHeader from '@/components/PageHeader';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 import Kpi from '@/components/Kpi';
 import CategoryIcon from '@/components/CategoryIcon';
 import { domainVars } from '@/components/domains';
@@ -42,6 +44,7 @@ export default async function ExpensesPage({ searchParams }) {
   }
   if (category) filter.category = category;
 
+  const canEdit = can(await getSession(), 'editExpenses');
   await connectDB();
   const [expenses, byCategory, vehicles] = await Promise.all([
     Expense.find(filter).sort({ date: -1, createdAt: -1 }).populate('vehicle', 'plate brand model').lean(),
@@ -78,7 +81,7 @@ export default async function ExpensesPage({ searchParams }) {
   return (
     <>
       <PageHeader title="Dépenses" domain="exp" sub="Par véhicule ou dépenses diverses de l’entreprise">
-        <Link href={vehicle ? `/depenses/nouvelle?vehicule=${vehicle}` : '/depenses/nouvelle'} className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter une dépense</Link>
+        {canEdit && <Link href={vehicle ? `/depenses/nouvelle?vehicule=${vehicle}` : '/depenses/nouvelle'} className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter une dépense</Link>}
       </PageHeader>
 
       <div className="daynav">
@@ -158,7 +161,7 @@ export default async function ExpensesPage({ searchParams }) {
                   <td><CategoryIcon category={x.category} /></td>
                   <td className="muted small">{x.description || '—'}</td>
                   <td className="num">{formatNumber(x.amount)}</td>
-                  <td className="actions-cell"><Link href={`/depenses/${x._id}/modifier`} className="btn icon ghost" aria-label="Modifier" title="Modifier"><Pencil size={17} aria-hidden="true" /></Link></td>
+                  <td className="actions-cell">{canEdit && <Link href={`/depenses/${x._id}/modifier`} className="btn icon ghost" aria-label="Modifier" title="Modifier"><Pencil size={17} aria-hidden="true" /></Link>}</td>
                 </tr>
               ))}
               <tr className="total">

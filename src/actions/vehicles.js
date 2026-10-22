@@ -47,7 +47,7 @@ function parseVehicle(fd) {
 const DUPLICATE_PLATE = { plate: 'Cette immatriculation existe déjà.' };
 
 export async function createVehicle(prevState, formData) {
-  await requireSession();
+  await requireSession('editFleet');
   const { data, errors } = parseVehicle(formData);
   if (Object.keys(errors).length) return { errors, values: formValues(formData) };
 
@@ -64,7 +64,7 @@ export async function createVehicle(prevState, formData) {
 }
 
 export async function updateVehicle(id, prevState, formData) {
-  await requireSession();
+  await requireSession('editFleet');
   if (!mongoose.isValidObjectId(id)) return { errors: { form: 'Véhicule introuvable.' } };
   const { data, errors } = parseVehicle(formData);
   if (Object.keys(errors).length) return { errors, values: formValues(formData) };
@@ -85,7 +85,7 @@ export async function updateVehicle(id, prevState, formData) {
 // Change le statut d'un véhicule à partir d'une date (aujourd'hui par défaut) et l'inscrit dans l'historique.
 // Les journées passées en atelier ou immobilisé deviennent non dues (voir lib/day-rows.js).
 export async function changeVehicleStatus(id, prevState, formData) {
-  await requireSession();
+  await requireSession('editFleet');
   if (!mongoose.isValidObjectId(id)) return { error: 'Véhicule introuvable.' };
   const status = str(formData, 'status');
   const today = todayUTC();

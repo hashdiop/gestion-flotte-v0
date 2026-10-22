@@ -44,7 +44,7 @@ function done(vehicleId, next) {
 }
 
 export async function createDocument(prevState, formData) {
-  await requireSession();
+  await requireSession('editDocuments');
   await connectDB();
   const { data, errors } = await parseDocument(formData);
   if (Object.keys(errors).length) return { errors };
@@ -53,7 +53,7 @@ export async function createDocument(prevState, formData) {
 }
 
 export async function updateDocument(id, prevState, formData) {
-  await requireSession();
+  await requireSession('editDocuments');
   if (!mongoose.isValidObjectId(id)) return { errors: { form: 'Document introuvable.' } };
   await connectDB();
   const { data, errors } = await parseDocument(formData);
@@ -65,7 +65,7 @@ export async function updateDocument(id, prevState, formData) {
 
 // Suppression d'une saisie erronée : masquée partout, conservée en base
 export async function deleteDocument(id, next) {
-  await requireSession();
+  await requireSession('editDocuments');
   if (!mongoose.isValidObjectId(id)) return;
   await connectDB();
   const doc = await VehicleDocument.findOneAndUpdate({ _id: id, deletedAt: null }, { $set: { deletedAt: new Date() } });

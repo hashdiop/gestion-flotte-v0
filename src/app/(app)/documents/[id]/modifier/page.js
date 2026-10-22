@@ -10,10 +10,15 @@ import { dayKey, todayUTC } from '@/lib/dates';
 import { vehicleOptions } from '@/lib/vehicle-options';
 import { safeNext } from '@/lib/safe-next';
 import VehicleDocument from '@/models/VehicleDocument';
+import Denied from '@/components/Denied';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 
 export const metadata = { title: 'Modifier un document · Gestion de flotte' };
 
 export default async function EditDocumentPage({ params, searchParams }) {
+  // Réservé aux rôles autorisés (l'action serveur refuse aussi)
+  if (!can(await getSession(), 'editDocuments')) return <Denied />;
   const { id } = await params;
   const { next } = await searchParams;
   if (!mongoose.isValidObjectId(id)) notFound();

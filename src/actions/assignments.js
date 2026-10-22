@@ -16,7 +16,7 @@ import Vehicle from '@/models/Vehicle';
 // Affecte un véhicule à un chauffeur à partir d'une date.
 // Les affectations en cours du chauffeur et du véhicule sont closes à cette date.
 export async function assignVehicle(prevState, formData) {
-  await requireSession();
+  await requireSession('editFleet');
   const driverId = str(formData, 'driverId');
   const vehicleId = str(formData, 'vehicleId');
   const startDate = date(formData, 'startDate') ?? todayUTC();
@@ -71,7 +71,7 @@ export async function assignVehicle(prevState, formData) {
 
 // Retire le véhicule au chauffeur ce soir : la journée en cours reste due
 export async function endAssignment(assignmentId) {
-  await requireSession();
+  await requireSession('editFleet');
   if (!mongoose.isValidObjectId(assignmentId)) return;
   await connectDB();
   await endCurrentAssignment({ _id: assignmentId }, addDays(todayUTC(), 1));

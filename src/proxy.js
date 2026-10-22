@@ -17,11 +17,13 @@ export async function proxy(request) {
     return NextResponse.redirect(url);
   }
 
-  if (session && onLogin) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
+  // Pas de redirection /login → / ici : un cookie bien signé peut appartenir à un compte désactivé
+  // (vérifié en base par le layout), ce qui ferait boucler. La page de connexion vérifie elle-même.
 
-  return NextResponse.next();
+  // Adresse demandée, transmise aux layouts (redirection vers « Mon compte » si mot de passe provisoire)
+  const headers = new Headers(request.headers);
+  headers.set('x-pathname', pathname);
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = {

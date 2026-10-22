@@ -7,6 +7,8 @@ import { getClosureState } from '@/lib/closure';
 import { addDays, dayKey, formatLongDay, isSunday, todayUTC } from '@/lib/dates';
 import { getDayRows } from '@/lib/day-rows';
 import { formatDate, formatFCFA, formatShort } from '@/lib/format';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 
 const COLS = 6;
 const timeFmt = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
@@ -48,7 +50,10 @@ export default async function DayView({ day }) {
     );
   }
 
-  const [{ rows, expected, paid, missing, closure }, state] = await Promise.all([getDayRows(day), getClosureState()]);
+  const [{ rows, expected, paid, missing, closure }, state, me] = await Promise.all([getDayRows(day), getClosureState(), getSession()]);
+  const canClose = can(me, 'closeDay');
+  // Journée ouverte : saisie (l'agent seulement aujourd'hui) ; journée clôturée : corrections réservées à l'admin
+  const canEdit = closure ? can(me, 'adjustClosed') : can(me, 'recordPayment') && (isToday || can(me, 'recordPastPayment'));
   const isNext = state.nextToClose && dayKey(state.nextToClose) === key;
   const beforeStart = day < state.closureStartDate;
 
@@ -62,13 +67,13 @@ export default async function DayView({ day }) {
     );
   } else if (isNext) {
     closureAlert = (
-      <Alert tone="info" icon={Hourglass} href="/versements/cloture" action="Clôturer">
+      <Alert tone="info" icon={Hourglass} href={canClose ? '/versements/cloture' : undefined} action="Clôturer">
         Journée ouverte{missing ? ` · ${missing} sans saisie → « Non versé » à la clôture` : ''}
       </Alert>
     );
   } else if (!beforeStart && state.nextToClose && day > state.nextToClose) {
     closureAlert = (
-      <Alert tone="warn" href="/versements/cloture" action={`Clôturer le ${formatDate(state.nextToClose)}`}>
+      <Alert tone="warn" href={canClose ? '/versements/cloture' : undefined} action={`Clôturer le ${formatDate(state.nextToClose)}`}>
         Clôturer d’abord le {formatDate(state.nextToClose)}
       </Alert>
     );
@@ -113,7 +118,7 @@ export default async function DayView({ day }) {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <PaymentRow key={r.key} row={r} day={key} colCount={COLS} closed={Boolean(closure)} />
+                <PaymentRow key={r.key} row={r} day={key} colCount={COLS} closed={Boolean(closure)} canEdit={canEdit} />
               ))}
             </tbody>
           </table>

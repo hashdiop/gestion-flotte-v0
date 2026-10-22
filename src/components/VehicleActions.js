@@ -8,8 +8,15 @@ import { VEHICLE_STATUS, VEHICLE_TRANSITIONS } from '@/lib/vehicle-status';
 const STATUS_ICONS = { en_service: CircleCheck, en_atelier: Wrench, immobilise: Ban, sorti_du_parc: Archive };
 
 // Actions rapides d'un véhicule, depuis la liste : crayon visible, le reste sous ⋮
-export default function VehicleActions({ vehicle, back = '/vehicules' }) {
+export default function VehicleActions({ vehicle, back = '/vehicules', canEdit = true }) {
   const id = String(vehicle._id);
+  if (!canEdit) {
+    return (
+      <Link href={`/vehicules/${id}`} className="btn icon ghost" aria-label={`Voir ${vehicle.plate}`} title="Voir la fiche">
+        <Eye size={17} aria-hidden="true" />
+      </Link>
+    );
+  }
   const out = vehicle.status === 'sorti_du_parc';
   const changeStatus = setVehicleStatus.bind(null, id);
   const transitions = VEHICLE_TRANSITIONS[vehicle.status];

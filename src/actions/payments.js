@@ -12,11 +12,12 @@ import Payment from '@/models/Payment';
 import Vehicle from '@/models/Vehicle';
 import PaymentLog from '@/models/PaymentLog';
 import { lockError } from '@/lib/closure';
+import { can } from '@/lib/roles';
 
 // Enregistre (ou corrige) le versement d'un chauffeur pour une journée.
 // mode : 'paid' (montant versé), 'unpaid' (rien versé), 'notdue' (journée non due)
 export async function recordPayment(prevState, formData) {
-  const session = await requireSession();
+  const session = await requireSession('recordPayment');
   const day = parseDay(str(formData, 'date'));
   const driverId = str(formData, 'driverId');
   const vehicleId = str(formData, 'vehicleId');
@@ -28,6 +29,8 @@ export async function recordPayment(prevState, formData) {
   if (!day) return { error: 'Date invalide.' };
   if (day > todayUTC()) return { error: 'Impossible d’encaisser une journée future.' };
   if (isSunday(day)) return { error: 'Le dimanche est un jour de repos : rien n’est dû.' };
+  // Un agent ne saisit que la journée en cours
+  if (day < todayUTC() && !can(session, 'recordPastPayment')) return { error: 'Votre rôle ne permet de saisir que la journée en cours.' };
   if (!mongoose.isValidObjectId(driverId) || !mongoose.isValidObjectId(vehicleId)) return { error: 'Ligne invalide.' };
   if (!['paid', 'unpaid', 'notdue'].includes(mode)) return { error: 'Action inconnue.' };
   if (mode === 'paid') {

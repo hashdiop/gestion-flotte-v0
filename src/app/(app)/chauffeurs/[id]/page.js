@@ -19,6 +19,8 @@ import { VEHICLE_STATUS } from '@/lib/vehicle-status';
 import Assignment from '@/models/Assignment';
 import Driver from '@/models/Driver';
 import Vehicle from '@/models/Vehicle';
+import { can } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
@@ -29,6 +31,8 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function DriverPage({ params }) {
+  // Droits du rôle connecté : les boutons non autorisés ne sont pas affichés
+  const canFleet = can(await getSession(), 'editFleet');
   const { id } = await params;
   if (!mongoose.isValidObjectId(id)) notFound();
   await connectDB();
@@ -81,7 +85,7 @@ export default async function DriverPage({ params }) {
         </div>
         <div className="row">
           {d.active ? <Badge tone="ok" icon={UserCheck}>Actif</Badge> : <Badge tone="neu" icon={UserX}>Désactivé</Badge>}
-          <Link href={`/chauffeurs/${id}/modifier`} className="btn"><Pencil size={16} aria-hidden="true" />Modifier</Link>
+          {canFleet && <Link href={`/chauffeurs/${id}/modifier`} className="btn"><Pencil size={16} aria-hidden="true" />Modifier</Link>}
         </div>
       </section>
 
@@ -102,14 +106,16 @@ export default async function DriverPage({ params }) {
                   Depuis le {formatDate(current.startDate)} · {formatFCFA(current.vehicle.dailyRate)} par jour{current.reason && ` · ${current.reason}`}
                 </span>
               </div>
-              <form action={endAssignment.bind(null, String(current._id))}>
-                <button type="submit" className="btn"><UserMinus size={16} aria-hidden="true" />Retirer le véhicule</button>
-              </form>
+              {canFleet && (
+                <form action={endAssignment.bind(null, String(current._id))}>
+                  <button type="submit" className="btn"><UserMinus size={16} aria-hidden="true" />Retirer le véhicule</button>
+                </form>
+              )}
             </div>
           ) : (
             <p className="muted">{d.active ? 'Aucun véhicule affecté.' : 'Chauffeur désactivé : aucun véhicule.'}</p>
           )}
-          {d.active && (
+          {canFleet && d.active && (
             <>
               <h3 className="h3">{current ? 'Changer de véhicule' : 'Affecter un véhicule'}</h3>
               <AssignForm
@@ -192,7 +198,7 @@ export default async function DriverPage({ params }) {
         </section>
       )}
 
-      <section className="card pad">
+      {canFleet && <section className="card pad">
         <h2>{d.active ? 'Départ du chauffeur' : 'Retour du chauffeur'}</h2>
         <p className="muted small">
           {d.active
@@ -203,7 +209,7 @@ export default async function DriverPage({ params }) {
           <input type="hidden" name="active" value={d.active ? 'false' : 'true'} />
           <button type="submit" className={`btn${d.active ? ' danger-btn' : ''}`}>{d.active ? <UserX size={16} aria-hidden="true" /> : <UserCheck size={16} aria-hidden="true" />}{d.active ? 'Désactiver le chauffeur' : 'Réactiver le chauffeur'}</button>
         </form>
-      </section>
+      </section>}
     </>
   );
 }
