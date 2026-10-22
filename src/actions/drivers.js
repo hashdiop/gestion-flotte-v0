@@ -8,6 +8,7 @@ import { requireSession } from '@/lib/session';
 import { str, date, formValues } from '@/lib/form';
 import { endCurrentAssignment } from '@/lib/assignments';
 import { addDays, todayUTC } from '@/lib/dates';
+import { safeNext } from '@/lib/safe-next';
 import Driver from '@/models/Driver';
 
 function parseDriver(fd) {
@@ -50,7 +51,8 @@ export async function updateDriver(id, prevState, formData) {
   const res = await Driver.updateOne({ _id: id }, { $set: data }, { runValidators: true });
   if (!res.matchedCount) return { errors: { form: 'Chauffeur introuvable.' } };
   revalidatePath('/chauffeurs');
-  redirect(`/chauffeurs/${id}`);
+  const next = str(formData, 'next');
+  redirect(next ? safeNext(next) : `/chauffeurs/${id}`);
 }
 
 export async function setDriverActive(id, formData) {

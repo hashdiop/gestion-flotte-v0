@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import mongoose from 'mongoose';
 import { notFound } from 'next/navigation';
@@ -24,7 +25,7 @@ export default async function EditDocumentPage({ params, searchParams }) {
 
   return (
     <>
-      <Link href={back} className="back">← Retour</Link>
+      <Link href={back} className="back"><ArrowLeft size={15} aria-hidden="true" />Retour</Link>
       <PageHeader title="Modifier le document" sub="Pour corriger une saisie. Un renouvellement s’enregistre comme un nouveau document." />
       <DocumentForm
         action={updateDocument.bind(null, id)}

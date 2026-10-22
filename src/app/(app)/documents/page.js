@@ -1,5 +1,9 @@
 import Link from 'next/link';
 import PageHeader from '@/components/PageHeader';
+import Kpi from '@/components/Kpi';
+import { DOC_ICONS } from '@/components/DocDots';
+import { domainVars } from '@/components/domains';
+import { CalendarClock, CircleX, FileQuestion, Plus, RefreshCw, TriangleAlert } from 'lucide-react';
 import Badge from '@/components/Badge';
 import FilterTabs from '@/components/FilterTabs';
 import { connectDB } from '@/lib/db';
@@ -36,27 +40,15 @@ export default async function DocumentsPage({ searchParams }) {
 
   return (
     <>
-      <PageHeader title="Documents" sub="Papiers administratifs des véhicules : échéances et vérifications">
-        <Link href="/documents/nouveau?next=/documents" className="btn primary">Ajouter un document</Link>
+      <PageHeader title="Documents" domain="doc" sub="Papiers administratifs des véhicules : échéances et vérifications. Aucune copie n’est conservée.">
+        <Link href="/documents/nouveau?next=/documents" className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter un document</Link>
       </PageHeader>
 
       <div className="kpis">
-        <div className="card kpi">
-          <span className="sub">Expirés</span>
-          <span className={`v${count('expired') ? ' neg' : ''}`}>{count('expired')}</span>
-        </div>
-        <div className="card kpi">
-          <span className="sub">Critiques (≤ {ALERT_DAYS.critical} j)</span>
-          <span className={`v${count('critical') ? ' neg' : ''}`}>{count('critical')}</span>
-        </div>
-        <div className="card kpi">
-          <span className="sub">À renouveler (≤ {ALERT_DAYS.soon} j)</span>
-          <span className="v">{count('soon')}</span>
-        </div>
-        <div className="card kpi">
-          <span className="sub">Manquants</span>
-          <span className={`v${count('missing') ? ' neg' : ''}`}>{count('missing')}</span>
-        </div>
+        <Kpi icon={CircleX} color="bad" label="Expirés" value={count('expired')} />
+        <Kpi icon={TriangleAlert} color="bad" label={`Critiques ≤ ${ALERT_DAYS.critical} j`} value={count('critical')} />
+        <Kpi icon={CalendarClock} color="warn" label={`À renouveler ≤ ${ALERT_DAYS.soon} j`} value={count('soon')} />
+        <Kpi icon={FileQuestion} color="neu" label="Manquants" value={count('missing')} />
       </div>
 
       <FilterTabs
@@ -72,7 +64,7 @@ export default async function DocumentsPage({ searchParams }) {
 
       <div className="card scroll">
         {shown.length === 0 ? (
-          <p className="empty-state">Tous les documents sont à jour.</p>
+          <p className="empty-state">Tout est à jour</p>
         ) : (
           <table>
             <thead>
@@ -89,10 +81,17 @@ export default async function DocumentsPage({ searchParams }) {
             <tbody>
               {shown.map((r) => (
                 <tr key={`${r.vehicle._id}-${r.type}`}>
-                  <td>{r.typeLabel}</td>
                   <td>
-                    <Link href={`/vehicules/${r.vehicle._id}`} className="ref mono">{r.vehicle.plate}</Link>
-                    <div className="muted small">{r.vehicle.brand} {r.vehicle.model}</div>
+                    <span className="ent">
+                      <span className="dom sm" style={domainVars('doc')} aria-hidden="true">{(() => { const I = DOC_ICONS[r.type]; return <I size={15} />; })()}</span>
+                      <span>{r.typeLabel}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <span className="ent-txt">
+                      <Link href={`/vehicules/${r.vehicle._id}`} className="plate">{r.vehicle.plate}</Link>
+                      <span className="muted">{r.vehicle.brand} {r.vehicle.model}</span>
+                    </span>
                   </td>
                   <td className="mono">{r.doc ? (r.doc.expiresAt ? formatDate(r.doc.expiresAt) : 'Sans échéance') : '—'}</td>
                   <td className={`num${r.status.days !== null && r.status.days < 0 ? ' neg' : ''}`}>{daysLabel(r.status.days)}</td>
@@ -100,16 +99,20 @@ export default async function DocumentsPage({ searchParams }) {
                   <td className="small">
                     {r.doc ? (
                       <>
-                        {formatDate(r.doc.verifiedAt)}
-                        <div className="muted">{r.doc.verifiedBy}</div>
+                        <span title={`Vérifié par ${r.doc.verifiedBy}`}>{formatDate(r.doc.verifiedAt)}</span>
                       </>
                     ) : (
                       <span className="muted">—</span>
                     )}
                   </td>
                   <td className="actions-cell">
-                    <Link href={`/documents/nouveau?vehicule=${r.vehicle._id}&type=${r.type}&next=/documents`} className="btn small-btn">
-                      {r.doc ? 'Renouveler' : 'Ajouter'}
+                    <Link
+                      href={`/documents/nouveau?vehicule=${r.vehicle._id}&type=${r.type}&next=/documents`}
+                      className={`btn icon${r.doc ? ' ghost' : ' primary'}`}
+                      aria-label={r.doc ? 'Renouveler' : 'Ajouter'}
+                      title={r.doc ? 'Renouveler' : 'Ajouter'}
+                    >
+                      {r.doc ? <RefreshCw size={17} aria-hidden="true" /> : <Plus size={17} aria-hidden="true" />}
                     </Link>
                   </td>
                 </tr>

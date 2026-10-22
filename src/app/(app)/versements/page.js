@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { LockKeyhole } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import FilterTabs from '@/components/FilterTabs';
 import { connectDB } from '@/lib/db';
@@ -18,7 +20,9 @@ export default async function PaymentsPage({ searchParams }) {
   await connectDB();
   return (
     <>
-      <PageHeader title="Versements" sub="Encaissement journalier par chauffeur, du lundi au samedi" />
+      <PageHeader title="Versements" domain="pay" sub="Encaissement journalier par chauffeur, du lundi au samedi">
+        <Link href="/versements/cloture" className="btn"><LockKeyhole size={17} aria-hidden="true" style={{ color: 'var(--clo)' }} />Clôture journalière</Link>
+      </PageHeader>
       <FilterTabs
         basePath="/versements"
         param="vue"

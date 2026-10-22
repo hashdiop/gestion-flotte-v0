@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import mongoose from 'mongoose';
 import { notFound } from 'next/navigation';
@@ -5,10 +6,12 @@ import PageHeader from '@/components/PageHeader';
 import VehicleForm from '@/components/VehicleForm';
 import { updateVehicle } from '@/actions/vehicles';
 import { connectDB } from '@/lib/db';
+import { safeNext } from '@/lib/safe-next';
 import Vehicle from '@/models/Vehicle';
 
-export default async function EditVehiclePage({ params }) {
+export default async function EditVehiclePage({ params, searchParams }) {
   const { id } = await params;
+  const sp = await searchParams;
   if (!mongoose.isValidObjectId(id)) notFound();
   await connectDB();
   const v = await Vehicle.findById(id).lean();
@@ -25,11 +28,15 @@ export default async function EditVehiclePage({ params }) {
     notes: v.notes ?? '',
   };
 
+  // Ouvert depuis la liste (actions rapides) : on y revient après l'enregistrement
+  const next = sp.next ? safeNext(sp.next) : '';
+  const back = next || `/vehicules/${id}`;
+
   return (
     <>
-      <Link href={`/vehicules/${id}`} className="back">← {v.plate}</Link>
-      <PageHeader title="Modifier le véhicule" sub={`${v.brand} ${v.model}`} />
-      <VehicleForm action={updateVehicle.bind(null, id)} initial={initial} submitLabel="Enregistrer" cancelHref={`/vehicules/${id}`} />
+      <Link href={back} className="back"><ArrowLeft size={15} aria-hidden="true" />{next ? 'Véhicules' : v.plate}</Link>
+      <PageHeader title={`Modifier ${v.plate}`} sub={`${v.brand} ${v.model}`} />
+      <VehicleForm action={updateVehicle.bind(null, id)} initial={initial} submitLabel="Enregistrer" cancelHref={back} next={next} />
     </>
   );
 }

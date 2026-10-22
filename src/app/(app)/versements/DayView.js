@@ -1,10 +1,15 @@
 import Link from 'next/link';
+import { Banknote, CalendarCheck, ChevronLeft, ChevronRight, CircleAlert, Coffee, Hourglass, ListChecks, Search } from 'lucide-react';
+import Alert from '@/components/Alert';
+import Kpi from '@/components/Kpi';
 import PaymentRow from '@/components/PaymentRow';
+import { getClosureState } from '@/lib/closure';
 import { addDays, dayKey, formatLongDay, isSunday, todayUTC } from '@/lib/dates';
 import { getDayRows } from '@/lib/day-rows';
-import { formatFCFA } from '@/lib/format';
+import { formatDate, formatFCFA, formatShort } from '@/lib/format';
 
 const COLS = 6;
+const timeFmt = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 
 export default async function DayView({ day }) {
   const today = todayUTC();
@@ -13,56 +18,87 @@ export default async function DayView({ day }) {
 
   const nav = (
     <div className="daynav">
-      <Link href={`/versements?date=${dayKey(addDays(day, -1))}`} className="btn">← Veille</Link>
+      <Link href={`/versements?date=${dayKey(addDays(day, -1))}`} className="btn icon" aria-label="Veille" title="Veille">
+        <ChevronLeft size={18} aria-hidden="true" />
+      </Link>
+      <h2 className="day-title">{formatLongDay(day)}</h2>
+      {day < today && (
+        <Link href={`/versements?date=${dayKey(addDays(day, 1))}`} className="btn icon" aria-label="Lendemain" title="Lendemain">
+          <ChevronRight size={18} aria-hidden="true" />
+        </Link>
+      )}
       <form action="/versements" className="daynav-form">
         <input type="date" name="date" defaultValue={key} max={dayKey(today)} aria-label="Choisir une date" />
-        <button type="submit" className="btn">Afficher</button>
+        <button type="submit" className="btn icon" aria-label="Afficher" title="Afficher"><Search size={17} aria-hidden="true" /></button>
       </form>
-      {day < today && <Link href={`/versements?date=${dayKey(addDays(day, 1))}`} className="btn">Lendemain →</Link>}
-      {!isToday && <Link href="/versements" className="btn">Aujourd’hui</Link>}
+      {!isToday && (
+        <Link href="/versements" className="btn icon" aria-label="Aujourd’hui" title="Aujourd’hui">
+          <CalendarCheck size={18} aria-hidden="true" />
+        </Link>
+      )}
     </div>
   );
 
   if (isSunday(day)) {
     return (
       <>
-        <h2 className="day-title">{formatLongDay(day)}</h2>
         {nav}
-        <div className="banner">Dimanche : jour de repos, aucun versement n’est dû.</div>
+        <Alert tone="info" icon={Coffee}>Dimanche : repos, rien n’est dû</Alert>
       </>
     );
   }
 
-  const { rows, expected, paid, missing } = await getDayRows(day);
+  const [{ rows, expected, paid, missing, closure }, state] = await Promise.all([getDayRows(day), getClosureState()]);
+  const isNext = state.nextToClose && dayKey(state.nextToClose) === key;
+  const beforeStart = day < state.closureStartDate;
+
+  // État de la journée vis-à-vis de la clôture
+  let closureAlert = null;
+  if (closure) {
+    closureAlert = (
+      <Alert tone="closed" href={`/versements/cloture/${key}`} action="Rapport">
+        Journée clôturée le {formatDate(closure.closedAt)} à {timeFmt.format(closure.closedAt)} par {closure.closedBy}
+      </Alert>
+    );
+  } else if (isNext) {
+    closureAlert = (
+      <Alert tone="info" icon={Hourglass} href="/versements/cloture" action="Clôturer">
+        Journée ouverte{missing ? ` · ${missing} sans saisie → « Non versé » à la clôture` : ''}
+      </Alert>
+    );
+  } else if (!beforeStart && state.nextToClose && day > state.nextToClose) {
+    closureAlert = (
+      <Alert tone="warn" href="/versements/cloture" action={`Clôturer le ${formatDate(state.nextToClose)}`}>
+        Clôturer d’abord le {formatDate(state.nextToClose)}
+      </Alert>
+    );
+  }
 
   return (
     <>
-      <h2 className="day-title">{formatLongDay(day)}</h2>
       {nav}
+      {/* Classe gardée pour les tests et repères : bandeau de journée clôturée */}
+      {closure ? <div className="closed-banner">{closureAlert}</div> : closureAlert}
 
       <div className="kpis">
-        <div className="card kpi">
-          <span className="sub">Attendu</span>
-          <span className="v">{formatFCFA(expected)}</span>
-        </div>
-        <div className="card kpi">
-          <span className="sub">Encaissé</span>
-          <span className="v">{formatFCFA(paid)}</span>
+        <Kpi icon={ListChecks} color="info" label="Attendu" value={formatShort(expected)} tip={formatFCFA(expected)} />
+        <Kpi icon={Banknote} color="pay" label="Encaissé" value={formatShort(paid)} tip={formatFCFA(paid)}>
           <div className="bar"><i style={{ width: `${expected ? Math.min(100, (paid / expected) * 100) : 0}%` }} /></div>
-        </div>
-        <div className="card kpi">
-          <span className="sub">Reste à encaisser</span>
-          <span className={`v${expected - paid > 0 ? ' neg' : ''}`}>{formatFCFA(Math.max(0, expected - paid))}</span>
-        </div>
-        <div className="card kpi">
-          <span className="sub">{isToday ? 'Lignes à saisir' : 'Lignes non saisies'}</span>
-          <span className="v">{missing} / {rows.length}</span>
-        </div>
+        </Kpi>
+        <Kpi
+          icon={CircleAlert}
+          color={expected - paid > 0 ? 'bad' : 'ok'}
+          label={closure ? 'Manque' : 'Reste'}
+          value={formatShort(Math.max(0, expected - paid))}
+          tip={formatFCFA(Math.max(0, expected - paid))}
+          valueClass={expected - paid > 0 ? 'neg' : ''}
+        />
+        {!closure && <Kpi icon={Hourglass} color="warn" label={isToday ? 'À saisir' : 'Non saisies'} value={`${missing} / ${rows.length}`} />}
       </div>
 
       <div className="card scroll">
         {rows.length === 0 ? (
-          <p className="empty-state">Aucun chauffeur n’avait de véhicule ce jour-là.</p>
+          <p className="empty-state">Aucun chauffeur affecté ce jour-là</p>
         ) : (
           <table>
             <thead>
@@ -77,7 +113,7 @@ export default async function DayView({ day }) {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <PaymentRow key={r.key} row={r} day={key} colCount={COLS} />
+                <PaymentRow key={r.key} row={r} day={key} colCount={COLS} closed={Boolean(closure)} />
               ))}
             </tbody>
           </table>

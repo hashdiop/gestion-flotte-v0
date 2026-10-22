@@ -7,6 +7,7 @@ import { requireSession } from '@/lib/session';
 import { str, date, isDuplicateKey } from '@/lib/form';
 import { addDays, todayUTC } from '@/lib/dates';
 import { endCurrentAssignment } from '@/lib/assignments';
+import { lockError } from '@/lib/closure';
 import { formatDate } from '@/lib/format';
 import Assignment from '@/models/Assignment';
 import Driver from '@/models/Driver';
@@ -27,6 +28,10 @@ export async function assignVehicle(prevState, formData) {
   if (startDate > todayUTC()) return { errors: { startDate: 'L’affectation ne peut pas commencer dans le futur.' } };
 
   await connectDB();
+  // Une affectation antidatée ne peut pas réécrire une journée clôturée.
+  // Aujourd'hui reste permis même après la clôture du soir : les lignes du jour sont déjà figées.
+  const locked = startDate < todayUTC() ? await lockError(startDate) : null;
+  if (locked) return { errors: { startDate: locked } };
   const [driver, vehicle] = await Promise.all([Driver.findById(driverId).lean(), Vehicle.findById(vehicleId).lean()]);
   if (!driver?.active) return { errors: { driverId: 'Ce chauffeur est introuvable ou désactivé.' } };
   if (!vehicle) return { errors: { vehicleId: 'Véhicule introuvable.' } };

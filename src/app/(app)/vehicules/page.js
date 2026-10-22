@@ -1,16 +1,22 @@
 import Link from 'next/link';
+import { Car, Plus } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import Badge from '@/components/Badge';
 import FilterTabs from '@/components/FilterTabs';
+import DocDots from '@/components/DocDots';
+import VehicleActions from '@/components/VehicleActions';
+import VehicleStatusBadge from '@/components/VehicleStatusBadge';
+import { domainVars } from '@/components/domains';
 import { connectDB } from '@/lib/db';
 import { currentAssignmentsBy } from '@/lib/assignments';
 import { todayUTC } from '@/lib/dates';
-import { currentDocuments, vehicleDocumentSummary } from '@/lib/documents';
+import { currentDocuments } from '@/lib/documents';
 import { formatNumber } from '@/lib/format';
 import { VEHICLE_STATUS } from '@/lib/vehicle-status';
 import Vehicle from '@/models/Vehicle';
 
 export const metadata = { title: 'Véhicules · Gestion de flotte' };
+
+const initialsOf = (d) => `${d.firstName[0] ?? ''}${d.lastName[0] ?? ''}`.toUpperCase();
 
 export default async function VehiclesPage({ searchParams }) {
   const { statut } = await searchParams;
@@ -36,61 +42,61 @@ export default async function VehiclesPage({ searchParams }) {
 
   return (
     <>
-      <PageHeader title="Véhicules" sub={`${activeCount} véhicule${activeCount > 1 ? 's' : ''} dans le parc actif`}>
-        <Link href="/vehicules/nouveau" className="btn primary">Ajouter un véhicule</Link>
+      <PageHeader title="Véhicules" domain="veh" sub={`${activeCount} véhicule${activeCount > 1 ? 's' : ''} dans le parc actif`}>
+        <Link href="/vehicules/nouveau" className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter un véhicule</Link>
       </PageHeader>
 
       <FilterTabs basePath="/vehicules" param="statut" current={current} options={tabs} label="Filtrer par statut" />
 
       <div className="card scroll">
         {vehicles.length === 0 ? (
-          <p className="empty-state">Aucun véhicule dans cette catégorie.</p>
+          <p className="empty-state">Aucun véhicule ici</p>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Immatriculation</th>
                 <th>Véhicule</th>
                 <th>Chauffeur</th>
                 <th className="num">Tarif / jour</th>
-                <th className="num">Kilométrage</th>
                 <th>Statut</th>
                 <th>Documents</th>
+                <th><span className="sr">Actions</span></th>
               </tr>
             </thead>
             <tbody>
-              {vehicles.map((v) => (
-                <tr key={String(v._id)}>
-                  <td className="mono"><Link href={`/vehicules/${v._id}`} className="ref">{v.plate}</Link></td>
-                  <td>
-                    {v.brand} {v.model}
-                    {v.year && <span className="muted small"> · {v.year}</span>}
-                  </td>
-                  <td>
-                    {(() => {
-                      const d = byVehicle.get(String(v._id))?.driver;
-                      return d ? (
-                        <Link href={`/chauffeurs/${d._id}`} className="ref">{d.firstName} {d.lastName}</Link>
+              {vehicles.map((v) => {
+                const d = byVehicle.get(String(v._id))?.driver;
+                const out = v.status === 'sorti_du_parc';
+                return (
+                  <tr key={String(v._id)}>
+                    <td>
+                      <span className="ent">
+                        <span className="dom sm" style={domainVars('veh')} aria-hidden="true"><Car size={16} /></span>
+                        <span className="ent-txt">
+                          <Link href={`/vehicules/${v._id}`} className="plate">{v.plate}</Link>
+                          <span className="muted">{v.brand} {v.model}{v.year ? ` · ${v.year}` : ''} · {formatNumber(v.mileage)} km</span>
+                        </span>
+                      </span>
+                    </td>
+                    <td>
+                      {d ? (
+                        <span className="ent">
+                          <span className="av" aria-hidden="true">{initialsOf(d)}</span>
+                          <Link href={`/chauffeurs/${d._id}`} className="ref">{d.firstName} {d.lastName}</Link>
+                        </span>
                       ) : (
                         <span className="muted">—</span>
-                      );
-                    })()}
-                  </td>
-                  <td className="num">{formatNumber(v.dailyRate)}</td>
-                  <td className="num">{formatNumber(v.mileage)} km</td>
-                  <td><Badge tone={VEHICLE_STATUS[v.status].tone}>{VEHICLE_STATUS[v.status].label}</Badge></td>
-                  <td>
-                    {v.status === 'sorti_du_parc' ? (
-                      <span className="muted">—</span>
-                    ) : (
-                      (() => {
-                        const s = vehicleDocumentSummary(docs.get(String(v._id)), today);
-                        return <Badge tone={s.tone}>{s.label}</Badge>;
-                      })()
-                    )}
-                  </td>
-                </tr>
-              ))}
+                      )}
+                    </td>
+                    <td className="num">{formatNumber(v.dailyRate)}</td>
+                    <td><VehicleStatusBadge status={v.status} /></td>
+                    <td>{out ? <span className="muted">—</span> : <DocDots docsByType={docs.get(String(v._id))} today={today} />}</td>
+                    <td className="actions-cell">
+                      <VehicleActions vehicle={v} back={current ? `/vehicules?statut=${current}` : '/vehicules'} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

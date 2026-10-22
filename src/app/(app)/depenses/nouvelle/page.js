@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import mongoose from 'mongoose';
 import PageHeader from '@/components/PageHeader';
@@ -18,7 +19,7 @@ export default async function NewExpensePage({ searchParams }) {
 
   return (
     <>
-      <Link href={preset ? `/vehicules/${preset}` : '/depenses'} className="back">← {preset ? 'Véhicule' : 'Dépenses'}</Link>
+      <Link href={preset ? `/vehicules/${preset}` : '/depenses'} className="back"><ArrowLeft size={15} aria-hidden="true" />{preset ? 'Véhicule' : 'Dépenses'}</Link>
       <PageHeader title="Nouvelle dépense" />
       <ExpenseForm
         action={createExpense}

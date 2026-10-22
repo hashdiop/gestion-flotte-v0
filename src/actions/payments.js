@@ -10,11 +10,13 @@ import { PAYMENT_METHODS } from '@/lib/payment-methods';
 import Assignment from '@/models/Assignment';
 import Payment from '@/models/Payment';
 import Vehicle from '@/models/Vehicle';
+import PaymentLog from '@/models/PaymentLog';
+import { lockError } from '@/lib/closure';
 
 // Enregistre (ou corrige) le versement d'un chauffeur pour une journée.
 // mode : 'paid' (montant versé), 'unpaid' (rien versé), 'notdue' (journée non due)
 export async function recordPayment(prevState, formData) {
-  await requireSession();
+  const session = await requireSession();
   const day = parseDay(str(formData, 'date'));
   const driverId = str(formData, 'driverId');
   const vehicleId = str(formData, 'vehicleId');
@@ -35,6 +37,8 @@ export async function recordPayment(prevState, formData) {
   if (mode === 'notdue' && !note) return { error: 'Indique pourquoi la journée n’est pas due.' };
 
   await connectDB();
+  const locked = await lockError(day);
+  if (locked) return { error: locked };
   const [assignment, vehicle, existing] = await Promise.all([
     Assignment.findOne({ driver: driverId, vehicle: vehicleId, ...coveringDay(day) }).lean(),
     Vehicle.findById(vehicleId).lean(),
@@ -44,20 +48,23 @@ export async function recordPayment(prevState, formData) {
 
   // Le montant attendu est figé à la première saisie : un changement de tarif ne réécrit pas le passé
   const expected = mode === 'notdue' ? 0 : existing?.expected || vehicle.dailyRate;
+  const after = {
+    expected,
+    paid: mode === 'paid' ? amount : 0,
+    method: mode === 'paid' ? method : null,
+    note,
+  };
 
-  await Payment.updateOne(
-    { driver: driverId, date: day },
-    {
-      $set: {
-        vehicle: vehicleId,
-        expected,
-        paid: mode === 'paid' ? amount : 0,
-        method: mode === 'paid' ? method : null,
-        note,
-      },
-    },
-    { upsert: true, runValidators: true }
-  );
+  await Payment.updateOne({ driver: driverId, date: day }, { $set: { vehicle: vehicleId, ...after } }, { upsert: true, runValidators: true });
+  await PaymentLog.create({
+    date: day,
+    driver: driverId,
+    vehicle: vehicleId,
+    action: existing ? 'modification' : 'saisie',
+    before: existing ? { expected: existing.expected, paid: existing.paid, method: existing.method, note: existing.note } : null,
+    after,
+    by: session.name,
+  });
 
   revalidatePath('/versements');
   revalidatePath(`/chauffeurs/${driverId}`);

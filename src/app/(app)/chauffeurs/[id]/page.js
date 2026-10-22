@@ -2,6 +2,8 @@ import Link from 'next/link';
 import mongoose from 'mongoose';
 import { notFound } from 'next/navigation';
 import Badge from '@/components/Badge';
+import { domainVars } from '@/components/domains';
+import { ArrowLeft, ArrowRight, Banknote, Car, History, Pencil, StickyNote, UserCheck, UserMinus, UserX } from 'lucide-react';
 import AssignForm from '@/components/AssignForm';
 import AssignmentHistory from '@/components/AssignmentHistory';
 import { setDriverActive } from '@/actions/drivers';
@@ -11,6 +13,7 @@ import { currentAssignmentsBy } from '@/lib/assignments';
 import { dayKey, todayUTC } from '@/lib/dates';
 import { paymentStatus } from '@/lib/payments';
 import Payment from '@/models/Payment';
+import { driverBalances } from '@/lib/balances';
 import { formatDate, formatFCFA, formatNumber, toDateInput } from '@/lib/format';
 import { VEHICLE_STATUS } from '@/lib/vehicle-status';
 import Assignment from '@/models/Assignment';
@@ -32,21 +35,12 @@ export default async function DriverPage({ params }) {
   const d = await Driver.findById(id).lean();
   if (!d) notFound();
 
-  const [[totalsRow], recentPayments] = await Promise.all([
-    Payment.aggregate([
-      { $match: { driver: d._id } },
-      {
-        $group: {
-          _id: null,
-          expected: { $sum: '$expected' },
-          paid: { $sum: '$paid' },
-          unpaid: { $sum: { $cond: [{ $and: [{ $gt: ['$expected', 0] }, { $eq: ['$paid', 0] }] }, 1, 0] } },
-        },
-      },
-    ]),
+  // Solde : journées saisies + écritures correctrices (remboursements, corrections après clôture)
+  const [balances, recentPayments] = await Promise.all([
+    driverBalances(id),
     Payment.find({ driver: id }).sort({ date: -1 }).limit(10).populate('vehicle', 'plate').lean(),
   ]);
-  const totals = totalsRow ?? { expected: 0, paid: 0, unpaid: 0 };
+  const totals = balances.get(id) ?? { expected: 0, paid: 0, unpaid: 0 };
 
   const [history, freeVehicles, byVehicle] = await Promise.all([
     Assignment.find({ driver: id }).sort({ startDate: -1, createdAt: -1 }).populate('vehicle', 'plate brand model status dailyRate').lean(),
@@ -71,11 +65,11 @@ export default async function DriverPage({ params }) {
 
   return (
     <>
-      <Link href="/chauffeurs" className="back">← Chauffeurs</Link>
+      <Link href="/chauffeurs" className="back"><ArrowLeft size={15} aria-hidden="true" />Chauffeurs</Link>
 
       <section className="card fiche-h">
         <div className="id">
-          <div className="avatar" aria-hidden="true">{initials}</div>
+          <span className="dom lg avatar-drv" style={domainVars('drv')} aria-hidden="true">{initials}</span>
           <div className="stack">
             <h1>{d.firstName} {d.lastName}</h1>
             <div className="facts">
@@ -86,14 +80,14 @@ export default async function DriverPage({ params }) {
           </div>
         </div>
         <div className="row">
-          {d.active ? <Badge tone="ok">Actif</Badge> : <Badge tone="neu">Désactivé</Badge>}
-          <Link href={`/chauffeurs/${id}/modifier`} className="btn">Modifier</Link>
+          {d.active ? <Badge tone="ok" icon={UserCheck}>Actif</Badge> : <Badge tone="neu" icon={UserX}>Désactivé</Badge>}
+          <Link href={`/chauffeurs/${id}/modifier`} className="btn"><Pencil size={16} aria-hidden="true" />Modifier</Link>
         </div>
       </section>
 
-      <section className="card">
+      <section className="card" id="vehicule">
         <div className="card-h">
-          <h2>Véhicule</h2>
+          <span className="h-ico"><span className="dom sm" style={domainVars('veh')} aria-hidden="true"><Car size={15} /></span><h2>Véhicule</h2></span>
         </div>
         <div className="pad top-line">
           {current ? (
@@ -109,7 +103,7 @@ export default async function DriverPage({ params }) {
                 </span>
               </div>
               <form action={endAssignment.bind(null, String(current._id))}>
-                <button type="submit" className="btn">Retirer le véhicule</button>
+                <button type="submit" className="btn"><UserMinus size={16} aria-hidden="true" />Retirer le véhicule</button>
               </form>
             </div>
           ) : (
@@ -134,8 +128,8 @@ export default async function DriverPage({ params }) {
 
       <section className="card">
         <div className="card-h">
-          <h2>Versements</h2>
-          <Link href="/versements?vue=semaine" className="small">Voir la semaine</Link>
+          <span className="h-ico"><span className="dom sm" style={domainVars('pay')} aria-hidden="true"><Banknote size={15} /></span><h2>Versements</h2></span>
+          <Link href="/versements?vue=semaine" className="btn icon ghost" aria-label="Voir la semaine" title="Voir la semaine"><ArrowRight size={18} aria-hidden="true" /></Link>
         </div>
         <div className="kpis pad top-line">
           <div className="stack">
@@ -187,13 +181,13 @@ export default async function DriverPage({ params }) {
       </section>
 
       <section className="card">
-        <div className="card-h"><h2>Historique des affectations</h2></div>
+        <div className="card-h"><span className="h-ico"><span className="dom sm" style={domainVars('drv')} aria-hidden="true"><History size={15} /></span><h2>Historique des affectations</h2></span></div>
         <AssignmentHistory items={history} side="vehicle" />
       </section>
 
       {d.notes && (
         <section className="card pad">
-          <h2>Notes</h2>
+          <span className="h-ico"><StickyNote size={18} aria-hidden="true" style={{ color: 'var(--muted)' }} /><h2>Notes</h2></span>
           <p className="pre">{d.notes}</p>
         </section>
       )}
@@ -207,7 +201,7 @@ export default async function DriverPage({ params }) {
         </p>
         <form action={toggle}>
           <input type="hidden" name="active" value={d.active ? 'false' : 'true'} />
-          <button type="submit" className="btn">{d.active ? 'Désactiver le chauffeur' : 'Réactiver le chauffeur'}</button>
+          <button type="submit" className={`btn${d.active ? ' danger-btn' : ''}`}>{d.active ? <UserX size={16} aria-hidden="true" /> : <UserCheck size={16} aria-hidden="true" />}{d.active ? 'Désactiver le chauffeur' : 'Réactiver le chauffeur'}</button>
         </form>
       </section>
     </>

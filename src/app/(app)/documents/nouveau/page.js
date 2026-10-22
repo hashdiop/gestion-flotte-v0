@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import mongoose from 'mongoose';
 import PageHeader from '@/components/PageHeader';
@@ -23,7 +24,7 @@ export default async function NewDocumentPage({ searchParams }) {
 
   return (
     <>
-      <Link href={back} className="back">← Retour</Link>
+      <Link href={back} className="back"><ArrowLeft size={15} aria-hidden="true" />Retour</Link>
       <PageHeader
         title={renewing ? `${DOCUMENT_TYPES[type].label} : nouvelle vérification` : 'Nouveau document'}
         sub={renewing ? 'Le document précédent reste dans l’historique.' : undefined}

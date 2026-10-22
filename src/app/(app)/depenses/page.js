@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import mongoose from 'mongoose';
 import PageHeader from '@/components/PageHeader';
+import Kpi from '@/components/Kpi';
+import CategoryIcon from '@/components/CategoryIcon';
+import { domainVars } from '@/components/domains';
+import { Building2, Car, ChevronLeft, ChevronRight, Filter, FilterX, Pencil, Plus, Receipt } from 'lucide-react';
 import Badge from '@/components/Badge';
 import { connectDB } from '@/lib/db';
 import { dayKey, todayUTC } from '@/lib/dates';
@@ -73,14 +77,14 @@ export default async function ExpensesPage({ searchParams }) {
 
   return (
     <>
-      <PageHeader title="Dépenses" sub="Par véhicule ou dépenses diverses de l’entreprise">
-        <Link href={vehicle ? `/depenses/nouvelle?vehicule=${vehicle}` : '/depenses/nouvelle'} className="btn primary">Ajouter une dépense</Link>
+      <PageHeader title="Dépenses" domain="exp" sub="Par véhicule ou dépenses diverses de l’entreprise">
+        <Link href={vehicle ? `/depenses/nouvelle?vehicule=${vehicle}` : '/depenses/nouvelle'} className="btn primary"><Plus size={18} aria-hidden="true" />Ajouter une dépense</Link>
       </PageHeader>
 
       <div className="daynav">
-        <Link href={qs(addMonths(month, -1))} className="btn">← Mois précédent</Link>
+        <Link href={qs(addMonths(month, -1))} className="btn icon" aria-label="Mois précédent" title="Mois précédent"><ChevronLeft size={18} aria-hidden="true" /></Link>
         <h2 className="day-title month">{monthFmt.format(month)}</h2>
-        {next <= thisMonth && <Link href={qs(next)} className="btn">Mois suivant →</Link>}
+        {next <= thisMonth && <Link href={qs(next)} className="btn icon" aria-label="Mois suivant" title="Mois suivant"><ChevronRight size={18} aria-hidden="true" /></Link>}
       </div>
 
       <form action="/depenses" className="card pad filters">
@@ -111,29 +115,20 @@ export default async function ExpensesPage({ searchParams }) {
           </select>
         </label>
         <div className="form-actions">
-          <button type="submit" className="btn">Filtrer</button>
-          {filtered && <Link href={`/depenses?mois=${monthKey(month)}`} className="btn">Effacer</Link>}
+          <button type="submit" className="btn"><Filter size={16} aria-hidden="true" />Filtrer</button>
+          {filtered && <Link href={`/depenses?mois=${monthKey(month)}`} className="btn icon" aria-label="Effacer les filtres" title="Effacer les filtres"><FilterX size={17} aria-hidden="true" /></Link>}
         </div>
       </form>
 
       <div className="kpis">
-        <div className="card kpi">
-          <span className="sub">Total{filtered ? ' (filtré)' : ''}</span>
-          <span className="v">{formatFCFA(total)}</span>
-        </div>
-        <div className="card kpi">
-          <span className="sub">Dont véhicules</span>
-          <span className="v">{formatFCFA(totalVehicle)}</span>
-        </div>
-        <div className="card kpi">
-          <span className="sub">Dont divers</span>
-          <span className="v">{formatFCFA(total - totalVehicle)}</span>
-        </div>
+        <Kpi icon={Receipt} color="exp" label={filtered ? 'Total filtré' : 'Total'} value={formatFCFA(total)} />
+        <Kpi icon={Car} color="veh" label="Véhicules" value={formatFCFA(totalVehicle)} />
+        <Kpi icon={Building2} color="neu" label="Divers" value={formatFCFA(total - totalVehicle)} />
       </div>
 
       <div className="card scroll">
         {expenses.length === 0 ? (
-          <p className="empty-state">Aucune dépense pour cette période{filtered ? ' et ces filtres' : ''}.</p>
+          <p className="empty-state">Aucune dépense{filtered ? ' avec ces filtres' : ' ce mois'}</p>
         ) : (
           <table>
             <thead>
@@ -152,15 +147,18 @@ export default async function ExpensesPage({ searchParams }) {
                   <td className="mono">{formatDate(x.date)}</td>
                   <td>
                     {x.type === 'vehicule' && x.vehicle ? (
-                      <Link href={`/vehicules/${x.vehicle._id}`} className="ref mono">{x.vehicle.plate}</Link>
+                      <span className="ent">
+                        <span className="dom sm" style={domainVars('veh')} aria-hidden="true"><Car size={15} /></span>
+                        <Link href={`/vehicules/${x.vehicle._id}`} className="plate">{x.vehicle.plate}</Link>
+                      </span>
                     ) : (
-                      <Badge tone="neu">Divers</Badge>
+                      <Badge tone="neu" icon={Building2}>Divers</Badge>
                     )}
                   </td>
-                  <td>{categoryLabel(x.category)}</td>
+                  <td><CategoryIcon category={x.category} /></td>
                   <td className="muted small">{x.description || '—'}</td>
                   <td className="num">{formatNumber(x.amount)}</td>
-                  <td className="actions-cell"><Link href={`/depenses/${x._id}/modifier`} className="btn small-btn">Modifier</Link></td>
+                  <td className="actions-cell"><Link href={`/depenses/${x._id}/modifier`} className="btn icon ghost" aria-label="Modifier" title="Modifier"><Pencil size={17} aria-hidden="true" /></Link></td>
                 </tr>
               ))}
               <tr className="total">

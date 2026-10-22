@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import mongoose from 'mongoose';
 import { notFound } from 'next/navigation';
@@ -22,7 +23,7 @@ export default async function EditExpensePage({ params }) {
 
   return (
     <>
-      <Link href={back} className="back">← Dépenses</Link>
+      <Link href={back} className="back"><ArrowLeft size={15} aria-hidden="true" />Dépenses</Link>
       <PageHeader title="Modifier la dépense" />
       <ExpenseForm
         action={updateExpense.bind(null, id)}

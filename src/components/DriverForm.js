@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useActionState } from 'react';
 import Field from './Field';
 
-export default function DriverForm({ action, initial = {}, submitLabel, cancelHref }) {
+// next : page où revenir après l'enregistrement (facultatif)
+export default function DriverForm({ action, initial = {}, submitLabel, cancelHref, next }) {
   const [state, formAction, pending] = useActionState(action, {});
   const v = state.values ?? initial;
   const e = state.errors ?? {};
@@ -12,6 +13,7 @@ export default function DriverForm({ action, initial = {}, submitLabel, cancelHr
 
   return (
     <form action={formAction} className="card pad form" noValidate>
+      {next && <input type="hidden" name="next" value={next} />}
       {e.form && <p className="form-error" role="alert">{e.form}</p>}
       <div className="form-grid">
         <Field label="Prénom" error={e.firstName}>

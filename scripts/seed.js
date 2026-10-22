@@ -1,6 +1,6 @@
 // Données de démonstration reprises de docs/maquette/Gestion flotte V2.html (fictives).
 // Usage : npm run seed            → refuse si des véhicules ou chauffeurs existent déjà
-//         npm run seed -- --reset → vide véhicules, chauffeurs, affectations, versements, dépenses et documents, puis réinsère la démo
+//         npm run seed -- --reset → vide véhicules, chauffeurs, affectations, versements, dépenses, documents, historique des statuts et clôtures, puis réinsère la démo
 import mongoose from 'mongoose';
 import Vehicle from '../src/models/Vehicle.js';
 import Driver from '../src/models/Driver.js';
@@ -8,6 +8,11 @@ import Assignment from '../src/models/Assignment.js';
 import Payment from '../src/models/Payment.js';
 import Expense from '../src/models/Expense.js';
 import VehicleDocument from '../src/models/VehicleDocument.js';
+import VehicleStatusChange from '../src/models/VehicleStatusChange.js';
+import DayClosure from '../src/models/DayClosure.js';
+import PaymentLog from '../src/models/PaymentLog.js';
+import PaymentAdjustment from '../src/models/PaymentAdjustment.js';
+import Setting from '../src/models/Setting.js';
 
 const VEHICLES = [
   { plate: 'DK-4821-AF', brand: 'Toyota', model: 'Corolla', year: 2019, color: 'Blanc', mileage: 98400, dailyRate: 15000 },
@@ -91,6 +96,20 @@ const DOC_OVERRIDES = {
 // Ancienne assurance déjà renouvelée : reste dans l'historique, la nouvelle est « en vigueur »
 const DOC_HISTORY = [['DK-4821-AF', 'assurance', '2026-03-31', '2025-04-02']];
 
+// Historique des statuts : en service depuis l'arrivée dans le parc, puis le Kia Rio part à l'atelier le 15/10.
+// [plaque, date, statut, motif]
+const STATUS_HISTORY = [
+  ['DK-4821-AF', '2024-03-01', 'en_service', 'Ajout au parc'],
+  ['DK-3307-BC', '2024-07-01', 'en_service', 'Ajout au parc'],
+  ['DK-9154-AD', '2023-11-01', 'en_service', 'Ajout au parc'],
+  ['DK-9154-AD', '2026-10-15', 'en_atelier', 'Remplacement embrayage'],
+  ['DK-1196-AG', '2023-01-01', 'en_service', 'Ajout au parc (réserve)'],
+  ['DK-6612-BA', '2025-01-01', 'en_service', 'Ajout au parc'],
+  ['DK-2078-AE', '2024-05-01', 'en_service', 'Ajout au parc'],
+  ['DK-5539-AC', '2026-09-02', 'en_service', 'Ajout au parc'],
+  ['DK-8840-BB', '2025-03-01', 'en_service', 'Ajout au parc'],
+];
+
 function day(s) {
   return new Date(`${s}T00:00:00Z`);
 }
@@ -117,6 +136,11 @@ try {
         Payment.deleteMany({}),
         Expense.deleteMany({}),
         VehicleDocument.deleteMany({}),
+        VehicleStatusChange.deleteMany({}),
+        DayClosure.deleteMany({}),
+        PaymentLog.deleteMany({}),
+        PaymentAdjustment.deleteMany({}),
+        Setting.deleteMany({}),
       ]);
     }
     await Assignment.syncIndexes();
@@ -182,6 +206,14 @@ try {
       documents.push({ vehicle: vehicleId[plate], type, expiresAt: day(exp), verifiedAt: day(verified), verifiedBy: 'Gestionnaire' });
     }
     await VehicleDocument.insertMany(documents);
+    await VehicleStatusChange.insertMany(
+      STATUS_HISTORY.map(([plate, date, status, reason]) => ({ vehicle: vehicleId[plate], date: day(date), status, reason }))
+    );
+    // La clôture journalière démarre le jour du seed : les journées de démonstration passées restent modifiables
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    await Setting.create({ _id: 'app', closureStartDate: today, closingHour: 21 });
+    await DayClosure.syncIndexes();
     console.log(
       `Seed terminé : ${VEHICLES.length} véhicules, ${DRIVERS.length} chauffeurs, ${ASSIGNMENTS.length} affectations, ` +
         `${payments.length} versements, ${EXPENSES.length} dépenses, ${documents.length} documents.`
