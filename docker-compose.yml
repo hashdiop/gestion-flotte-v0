@@ -1,0 +1,52 @@
+# Déploiement : application + MongoDB (+ tunnel Cloudflare pour l'accès Internet).
+# Réglages dans .env, lu automatiquement par docker compose (modèle : .env.production.example). Mode d’emploi : DEPLOIEMENT.md.
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo-data:/data/db # les données survivent aux redémarrages et mises à jour
+    # Aucun port publié : la base n'est joignable que par l'application, sur le réseau Docker
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  app:
+    build: .
+    image: bt-gestion-flotte:latest
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB}?authSource=admin
+      AUTH_SECRET: ${AUTH_SECRET}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # Lus uniquement par « npm run user:admin » (compte admin initial)
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrateur}
+    # Accès sur le réseau local : http://IP-DU-NAS:3000 (voir COOKIE_SECURE dans DEPLOIEMENT.md)
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+  # Accès Internet en HTTPS sans ouvrir de port sur la box. Lancé avec : docker compose --profile tunnel up -d
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - app
+    profiles: ["tunnel"]
+
+volumes:
+  mongo-data:

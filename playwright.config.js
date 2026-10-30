@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import nextEnv from '@next/env';
+
+// Le serveur standalone ne lit pas .env.local : on charge les variables ici pour les lui transmettre
+nextEnv.loadEnvConfig(process.cwd());
 import { E2E_BASE_URL, E2E_MONGODB_URI, E2E_PORT, STORAGE_STATE } from './e2e/test-env.js';
 
 export default defineConfig({
@@ -23,12 +27,14 @@ export default defineConfig({
       dependencies: ['connexion'],
     },
   ],
-  // Application compilée, lancée sur un port à part avec la base de test.
-  // .env.local fournit AUTH_SECRET ; MONGODB_URI est remplacé par la base de test.
+  // Application compilée et lancée comme dans l'image Docker (serveur standalone + fichiers statiques),
+  // sur un port à part avec la base de test. .env.local (chargé plus haut) fournit AUTH_SECRET.
   webServer: {
-    command: `npm run build && npx next start -p ${E2E_PORT}`,
+    command:
+      `npm run build && node -e "require('fs').cpSync('.next/static', '.next/standalone/.next/static', { recursive: true })"` +
+      ` && node .next/standalone/server.js`,
     url: `${E2E_BASE_URL}/api/health`,
-    env: { MONGODB_URI: E2E_MONGODB_URI },
+    env: { MONGODB_URI: E2E_MONGODB_URI, PORT: String(E2E_PORT), HOSTNAME: '127.0.0.1' },
     timeout: 240_000,
     reuseExistingServer: false,
   },

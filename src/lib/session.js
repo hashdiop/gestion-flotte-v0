@@ -10,7 +10,9 @@ export async function createSession(user) {
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    // Cookie réservé au HTTPS en production. COOKIE_SECURE=false seulement pour un accès en HTTP
+    // simple (ex. adresse IP du NAS sur le réseau local), sinon la connexion échoue sans message.
+    secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: SESSION_MAX_AGE,
   });

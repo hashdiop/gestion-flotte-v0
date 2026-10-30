@@ -2,11 +2,12 @@ import { connectDB } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+// Contrôle de santé (Docker, supervision) : public, il ne révèle rien sur la base
 export async function GET() {
   try {
-    const conn = await connectDB();
-    return Response.json({ status: 'ok', db: conn.connection.name });
-  } catch (err) {
-    return Response.json({ status: 'error', message: err.message }, { status: 503 });
+    await connectDB();
+    return Response.json({ status: 'ok' });
+  } catch {
+    return Response.json({ status: 'error' }, { status: 503 });
   }
 }

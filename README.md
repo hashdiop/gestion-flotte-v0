@@ -44,6 +44,10 @@ la remplissent avec le seed et y créent un compte de test. La base de développ
 - Un compte n'est jamais supprimé (l'historique garde son nom). Le dernier admin actif ne peut être ni désactivé ni rétrogradé.
 - Chacun change son mot de passe depuis « Mon compte » (clic sur son nom en bas du menu).
 
+## Déploiement Docker (NAS)
+
+Application + MongoDB + tunnel Cloudflare avec `docker compose` : voir [DEPLOIEMENT.md](DEPLOIEMENT.md).
+
 ## Mise en production : premier admin
 
 1. Renseigner `MONGODB_URI` (base de production), `AUTH_SECRET` (long et aléatoire), `ADMIN_EMAIL`,

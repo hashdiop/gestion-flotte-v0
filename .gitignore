@@ -10,3 +10,6 @@ out/
 /test-results/
 /playwright-report/
 /e2e/.auth/
+
+# Déploiement
+/backups/

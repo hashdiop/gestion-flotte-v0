@@ -1,0 +1,16 @@
+# Rien de tout ça n'entre dans l'image
+node_modules
+.next
+.git
+.env
+.env*.local
+.env.production
+e2e
+test-results
+playwright-report
+playwright.config.js
+backups
+*.log
+Dockerfile
+docker-compose.yml
+DEPLOIEMENT.md
